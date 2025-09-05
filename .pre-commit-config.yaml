@@ -14,10 +14,11 @@ repos:
     hooks:
       - id: ruff-check
       - id: ruff-format
-  - repo: https://github.com/facebook/pyrefly-pre-commit
-    rev: 0.0.1
+  - repo: local
     hooks:
-      - id: pyrefly-typecheck-system
-        name: Pyrefly (type checking)
+      - id: ty
+        name: ty check
+        description: Typecheck Python files with ty
+        language: system
+        entry: uv run --project ./backend --frozen ty check # TODO: find pre-commit hook for this
         pass_filenames: false
-        args: ["-c", "backend/pyproject.toml"]

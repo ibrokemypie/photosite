@@ -1,9 +1,10 @@
-from importlib.resources import open_binary
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import piexif
 from PIL.ExifTags import Base
+
+from photosite_backend.test import open_test_datafile
 
 from . import ALLOWED_EXTENSIONS, get_files, hash_image, read_tags, test_data
 
@@ -31,7 +32,10 @@ class TestGetFiles:
 
 class TestReadTags:
     def test_read_tags(self):
-        with TemporaryDirectory() as dir, open_binary(test_data, "photo_1.jpg") as file:
+        with (
+            TemporaryDirectory() as dir,
+            open_test_datafile(test_data, "photo_1.jpg") as file,
+        ):
             filepath = Path(dir) / "photo_1.jpg"
             filepath.write_bytes(file.read())
 
@@ -48,7 +52,7 @@ class TestHashImage:
     def test_hash_image(self):
         with (
             TemporaryDirectory() as dir,
-            open_binary(test_data, "photo_1.jpg") as file,
+            open_test_datafile(test_data, "photo_1.jpg") as file,
         ):
             filepath = Path(dir) / "photo_1.jpg"
             filepath.write_bytes(file.read())
@@ -63,7 +67,7 @@ class TestHashImage:
         # the image has tags or not
         with (
             TemporaryDirectory() as dir,
-            open_binary(test_data, "photo_1.jpg") as file,
+            open_test_datafile(test_data, "photo_1.jpg") as file,
         ):
             orig = Path(dir) / "orig.jpg"
             orig.write_bytes(file.read())
@@ -81,8 +85,8 @@ class TestHashImage:
         # sanity check that two different images have two different hashes
         with (
             TemporaryDirectory() as dir,
-            open_binary(test_data, "photo_1.jpg") as file_one,
-            open_binary(test_data, "photo_2.jpg") as file_two,
+            open_test_datafile(test_data, "photo_1.jpg") as file_one,
+            open_test_datafile(test_data, "photo_2.jpg") as file_two,
         ):
             path_one = Path(dir) / "photo_1.jpg"
             path_one.write_bytes(file_one.read())

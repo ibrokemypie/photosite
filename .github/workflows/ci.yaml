@@ -1,0 +1,26 @@
+name: ci
+on:
+  push:
+jobs:
+  shared-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: pre-commit/action@v3.0.1
+  backend-ci:
+    defaults:
+      run:
+        working-directory: ./backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          working-directory: ./backend
+          enable-cache: true
+      - name: Run tests
+        run: uv run --project ./backend --frozen pytest
+        env:
+          COLUMNS: 120
