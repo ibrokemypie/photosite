@@ -2,6 +2,8 @@ import argparse
 import pathlib
 from importlib.metadata import version
 
+from photosite_backend.reader import get_files
+
 
 def return_hi():
     return "hi!"
@@ -24,7 +26,7 @@ def main():
         "--output-dir",
         type=pathlib.Path,
         help="Path to the directory the manifest and sanitized images will be written to.",
-        required=True,
+        default="./",
     )
     parser.add_argument(
         "-v",
@@ -34,7 +36,7 @@ def main():
     )
 
     args = parser.parse_args()
-    print(args)
+    print(get_files(args.input_dir))
 
 
 if __name__ == "__main__":
