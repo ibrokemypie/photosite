@@ -5,8 +5,10 @@ writing into the manifest.
 
 import hashlib
 import pathlib
+from functools import lru_cache
 
-from PIL import ExifTags, Image
+from piexif import TAGS, ImageIFD, load
+from PIL import Image
 
 ALLOWED_EXTENSIONS = (".jpg", ".jpeg")
 
@@ -19,19 +21,23 @@ def get_files(directory_path: pathlib.Path):
     }
 
 
+def get_tag_name(tag_no):
+    return TAGS["Image"][tag_no]["name"]
+
+
 def read_tags(file_path: pathlib.Path):
-    IMPORTANT_TAGS = (
-        ExifTags.Base.Make,
-        ExifTags.Base.Model,
-        ExifTags.Base.DateTime,
-    )
+    IMPORTANT_TAGS = (ImageIFD.Make, ImageIFD.Model, ImageIFD.DateTime)
 
-    with Image.open(file_path) as im:
-        exif = im.getexif()
+    exif = load(str(file_path))["0th"]
 
-        return {tag: exif[tag] for tag in IMPORTANT_TAGS if tag in exif}
+    return {
+        get_tag_name(tag_no): tag_val.decode()
+        for tag_no, tag_val in exif.items()
+        if tag_no in IMPORTANT_TAGS
+    }
 
 
+@lru_cache
 def hash_image(image_path: pathlib.Path):
     # hashes just the image data, not the metadata, for identifying images
     # even when their metadata has been modified.
