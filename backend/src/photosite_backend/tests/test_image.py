@@ -2,7 +2,7 @@ from pathlib import Path
 
 import piexif
 
-from photosite_backend.reader import (
+from photosite_backend.image import (
     ALLOWED_EXTENSIONS,
     get_files,
     hash_image,

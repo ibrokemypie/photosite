@@ -3,8 +3,8 @@ import pathlib
 from importlib.metadata import version
 from pprint import pprint
 
+from photosite_backend.image import get_files
 from photosite_backend.manifest import generate_manifest
-from photosite_backend.reader import get_files
 
 
 def return_hi():

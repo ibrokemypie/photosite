@@ -3,10 +3,11 @@ This file contains the functions that will generate the manifest file from
 the parsed image metadata.
 """
 
+import json
 import pathlib
 from typing import Iterable
 
-from photosite_backend.reader import hash_image, read_tags
+from photosite_backend.image import hash_image, read_tags
 
 MANIFEST_VERSION = 1
 
@@ -26,3 +27,12 @@ def generate_manifest_entry(image_path: pathlib.Path):
     image_tags = read_tags(image_path)
 
     return {"filename": f"{image_hash}{image_path.suffix}", "tags": image_tags}
+
+
+def write_manifest(output_dir: pathlib.Path, manifest_contents: dict):
+    manifest_path = output_dir / "manifest.json"
+
+    with manifest_path.open("w") as file:
+        json.dump(manifest_contents, file)
+
+    return manifest_path
