@@ -4,14 +4,14 @@ the parsed image metadata.
 """
 
 import pathlib
-from typing import MutableSequence
+from typing import Iterable
 
 from photosite_backend.reader import hash_image, read_tags
 
 MANIFEST_VERSION = 1
 
 
-def generate_manifest(image_paths: MutableSequence[pathlib.Path]):
+def generate_manifest(image_paths: Iterable[pathlib.Path]):
     return {
         "version": MANIFEST_VERSION,
         "images": {

@@ -1,24 +1,11 @@
-# See https://pre-commit.com for more information
-# See https://pre-commit.com/hooks.html for more hooks
+# shared hooks across the entire repo
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      - id: check-merge-conflict
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
         args: ['--maxkb=1024']
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.10
-    hooks:
-      - id: ruff-check
-      - id: ruff-format
-  - repo: local
-    hooks:
-      - id: ty
-        name: ty check
-        description: Typecheck Python files with ty
-        language: system
-        entry: uv run --project ./backend --frozen ty check # TODO: find pre-commit hook for this
-        pass_filenames: false
