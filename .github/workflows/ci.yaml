@@ -2,25 +2,27 @@ name: ci
 on:
   push:
 jobs:
-  shared-ci:
+  prek:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: hynek/setup-cached-uv@v2
-        with:
-          cache-dependency-path: ./backend/pyproject.toml
-      - uses: pre-commit/action@v3.0.1
-  backend-ci:
+      - name: Run prek (pre-commit)
+        # Not entirely sure what the best way to manage the version of a project
+        # wide python dependency of a monorepo, pinning it here for now to
+        # this alpha with subproject support.
+        run: uvx --with prek==0.2.0-alpha.2 prek --all-files
+  test-backend:
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./backend
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: hynek/setup-cached-uv@v2
         with:
           cache-dependency-path: ./backend/pyproject.toml
       - name: Run tests
-        run: uv run --project ./backend --frozen pytest
+        run: uv run --frozen pytest
         env:
           COLUMNS: 120

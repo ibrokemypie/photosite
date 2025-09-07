@@ -28,7 +28,7 @@ def get_tag_name(tag_no):
 def read_tags(file_path: pathlib.Path):
     IMPORTANT_TAGS = (ImageIFD.Make, ImageIFD.Model, ImageIFD.DateTime)
 
-    exif = load(str(file_path))["0th"]
+    exif = load(str(file_path))["0th"] or {}
 
     return {
         get_tag_name(tag_no): tag_val.decode()
