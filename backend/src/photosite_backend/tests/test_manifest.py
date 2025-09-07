@@ -15,7 +15,7 @@ def test_generate_manifest_entry(tmp_path: Path):
         "tags": {
             "Make": "OLYMPUS CORPORATION",
             "Model": "E-M10MarkII",
-            "DateTime": "2019:10:22 18:00:27",
+            "DateTimeOriginal": "2017:01:06 11:05:48",
         },
     }
 

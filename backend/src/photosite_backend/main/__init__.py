@@ -3,7 +3,7 @@ import pathlib
 from importlib.metadata import version
 from pprint import pprint
 
-from photosite_backend.image import get_files
+from photosite_backend.image import get_images
 from photosite_backend.manifest import generate_manifest
 
 
@@ -38,7 +38,7 @@ def main():
     )
 
     args = parser.parse_args()
-    print(pprint(generate_manifest(get_files(args.input_dir))))
+    print(pprint(generate_manifest(get_images(args.input_dir))))
 
 
 if __name__ == "__main__":

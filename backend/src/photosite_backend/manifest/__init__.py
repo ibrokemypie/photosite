@@ -7,7 +7,10 @@ import json
 import pathlib
 from typing import Iterable
 
-from photosite_backend.image import hash_image, read_tags
+from photosite_backend.image import (
+    get_tags_flat,
+    hash_image,
+)
 
 MANIFEST_VERSION = 1
 
@@ -24,7 +27,7 @@ def generate_manifest(image_paths: Iterable[pathlib.Path]):
 
 def generate_manifest_entry(image_path: pathlib.Path):
     image_hash = hash_image(image_path)
-    image_tags = read_tags(image_path)
+    image_tags = get_tags_flat(image_path)
 
     return {"filename": f"{image_hash}{image_path.suffix}", "tags": image_tags}
 
