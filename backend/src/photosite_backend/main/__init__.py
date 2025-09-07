@@ -1,7 +1,9 @@
 import argparse
 import pathlib
 from importlib.metadata import version
+from pprint import pprint
 
+from photosite_backend.manifest import generate_manifest
 from photosite_backend.reader import get_files
 
 
@@ -36,7 +38,7 @@ def main():
     )
 
     args = parser.parse_args()
-    print(get_files(args.input_dir))
+    print(pprint(generate_manifest(get_files(args.input_dir))))
 
 
 if __name__ == "__main__":
