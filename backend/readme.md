@@ -1,9 +1,20 @@
+# Requirements
+
+Python >=3.11
+exiftool
+
 # Todo
 
 
 ## Write the output image files
 
-- Make an in-memory copy of the image file to act on
-- Strip out all metadata that doesn't match a whitelist
-- Make it possible to override specific metadata fields with constant values
-- Make whitelist configurable
+
+It turns out EXIF isn't the only image metadata format, theres also IPTC,
+photoshop and others. And the data seems to be copied across all the formats for
+a given file. I think instead of a whitelist, its going to make more sense to
+have a blacklist and a rewrite list.
+
+- Add a regex blacklist
+- Add a regex rewrite list
+- Make both configurable through CLI
+- Add config file based on CLI options
