@@ -2,7 +2,8 @@ import argparse
 import pathlib
 from importlib.metadata import version
 
-from photosite_backend.reader import get_files
+from photosite_backend.image import get_images, write_image
+from photosite_backend.manifest import generate_manifest, write_manifest
 
 
 def return_hi():
@@ -36,7 +37,32 @@ def main():
     )
 
     args = parser.parse_args()
-    print(get_files(args.input_dir))
+
+    write_output(args.input_dir, args.output_dir)
+
+
+def write_output(input_path: pathlib.Path, output_dir: pathlib.Path):
+    """
+    Reads the images contained within input_dir, writes them, with their EXIF
+    sanitized, into the output dir named after the hash of their image contents,
+    alongside a manifest file.
+    """
+
+    image_paths = get_images(input_path)
+
+    written_files = set()
+    manifest = generate_manifest(image_paths)
+
+    for image_path in image_paths:
+        output_path = write_image(output_dir, image_path)
+        written_files.add(output_path)
+        print(f"Wrote image `{image_path.name}` to `{output_path}`")
+
+    manifest_path = write_manifest(output_dir, manifest)
+    written_files.add(manifest_path)
+    print(f"Wrote manifest to `{manifest_path}`")
+
+    return written_files
 
 
 if __name__ == "__main__":
