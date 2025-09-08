@@ -1,6 +1,6 @@
 import hashlib
-import pathlib
 from functools import lru_cache
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any, Container, Literal, cast
 
@@ -16,7 +16,7 @@ TAG_WHITELIST = {
 }
 
 
-def get_images(input_path: pathlib.Path):
+def get_images(input_path: Path):
     return {
         entry
         for entry in input_path.iterdir()
@@ -25,7 +25,7 @@ def get_images(input_path: pathlib.Path):
 
 
 @lru_cache(5)
-def hash_image(image_path: pathlib.Path):
+def hash_image(image_path: Path):
     # hashes just the image data, not the metadata, for identifying images
     # even when their metadata has been modified.
 
@@ -46,7 +46,7 @@ ExifValues = dict[IFDName, dict[TagID, Any] | None]
 
 
 @lru_cache(5)
-def read_exif(image_path: pathlib.Path):
+def read_exif(image_path: Path):
     exif = piexif.load(str(image_path))
     return cast(ExifValues, exif)
 
@@ -68,7 +68,7 @@ def find_tag_by_name(tag_name: str):
     raise ValueError(f"No tag with name `{tag_name}` exists")
 
 
-def get_tag_value(image_path: pathlib.Path, tag_name: str) -> str | None:
+def get_tag_value(image_path: Path, tag_name: str) -> str | None:
     """
     Takes an image path and a tag name. Searches for the tag name across
     all EXIF ifds and returns the first result's value if any.
@@ -88,7 +88,7 @@ def get_tag_value(image_path: pathlib.Path, tag_name: str) -> str | None:
         return value
 
 
-def filter_tags(image_path: pathlib.Path, tag_whitelist: Container[str]):
+def filter_tags(image_path: Path, tag_whitelist: Container[str]):
     """
     Filter out all EXIF tags of the provided file whose names do not match
     the provided whitelist.
@@ -125,8 +125,11 @@ def get_tags_flat(
     return {tag_name: get_tag_value(image_path, tag_name) for tag_name in TAG_WHITELIST}
 
 
-def write_image(output_dir: pathlib.Path, image_path: pathlib.Path):
+def write_image(output_dir: Path, image_path: Path):
     """
+    Writes an input image to the correct location in the output path based on
+    its hash, with the exif data cleaned.
+
     todo: tag rewriting
     todo: configurable whielist
     """
@@ -138,7 +141,6 @@ def write_image(output_dir: pathlib.Path, image_path: pathlib.Path):
 
     with NamedTemporaryFile() as tempfile:
         piexif.remove(str(image_path), tempfile.name)
-        print(new_tags)
         piexif.insert(piexif.dump(new_tags), tempfile.name, str(output_path))
 
     return output_path
