@@ -1,19 +1,54 @@
 import hashlib
-from functools import lru_cache
+import re
 from pathlib import Path
-from tempfile import NamedTemporaryFile
-from typing import Any, Container, Literal, cast
+from typing import Any, List
 
-import piexif
+import exiftool
+from exiftool import ExifToolHelper
 from PIL import Image
+
+from photosite_backend.utils import cache, lru_cache
 
 ALLOWED_EXTENSIONS = (".jpg", ".jpeg")
 
-TAG_WHITELIST = {
-    "Make",
-    "Model",
-    "DateTimeOriginal",
+TAG_BLACKLIST = {
+    "(?i)GPS:.*",
+    "(?i).*:by.*line",
+    "(?i).*:.*copyright.*",
+    "(?i).*:.*artist.*",
 }
+
+# these are the keys left behind by exiftool after removing ALL
+# 'tags'
+PERMANENT_TAGS = {
+    "Composite:ImageSize",
+    "Composite:Megapixels",
+    "ExifTool:ExifToolVersion",
+    "File:BitsPerSample",
+    "File:ColorComponents",
+    "File:CurrentIPTCDigest",
+    "File:Directory",
+    "File:EncodingProcess",
+    "File:FileAccessDate",
+    "File:FileInodeChangeDate",
+    "File:FileModifyDate",
+    "File:FileName",
+    "File:FilePermissions",
+    "File:FileSize",
+    "File:FileType",
+    "File:FileTypeExtension",
+    "File:ImageHeight",
+    "File:ImageWidth",
+    "File:MIMEType",
+    "File:YCbCrSubSampling",
+    "SourceFile",
+    "IPTC:ApplicationRecordVersion",
+}
+
+
+@cache
+def get_tag_blacklist():
+    return {re.compile(pattern) for pattern in TAG_BLACKLIST | PERMANENT_TAGS}
 
 
 def get_images(input_path: Path):
@@ -24,7 +59,7 @@ def get_images(input_path: Path):
     }
 
 
-@lru_cache(5)
+@lru_cache(maxsize=5)
 def hash_image(image_path: Path):
     # hashes just the image data, not the metadata, for identifying images
     # even when their metadata has been modified.
@@ -35,94 +70,93 @@ def hash_image(image_path: Path):
         return sha256_hash
 
 
-TagName = str
-TagType = int
-TagID = int
-IFDName = str
-IFDContents = dict[TagID, dict[Literal["name"] | Literal["type"], TagName | TagType]]
-IFDDict = dict[IFDName, IFDContents]
+class ExifToolWithClear(ExifToolHelper):
+    def clear(self, files: Any | List[Any]):
+        """
+                    Delete all tags for the given files.
 
-ExifValues = dict[IFDName, dict[TagID, Any] | None]
+                :param files: File(s) to be worked on.
+
+            * If a non-iterable is provided, it will get tags for a single item (str(non-iterable))
+            * If an iterable is provided, the list is passed into :py:meth:`execute_json` verbatim.
+
+            .. note::
+                Any files/params which are not bytes/str will be casted to a str in :py:meth:`execute()`.
+
+            .. warning::
+                Currently, filenames are NOT checked for existence!  That is left up to the caller.
+
+            .. warning::
+                Wildcard strings are valid and passed verbatim to exiftool.
+
+                However, exiftool's wildcard matching/globbing may be different than Python's matching/globbing,
+                which may cause unexpected behavior if you're using one and comparing the result to the other.
+                Read `ExifTool Common Mistakes - Over-use of Wildcards in File Names`_ for some related info.
+
+        :type files: Any or List(Any) - see Note
+
+        :return: The format of the return value is the same as for :py:meth:`exiftool.ExifTool.execute_json()`.
 
 
-@lru_cache(5)
-def read_exif(image_path: Path):
-    exif = piexif.load(str(image_path))
-    return cast(ExifValues, exif)
+                :raises ValueError: Invalid Parameter
+                :raises TypeError: Invalid Parameter
+                :raises ExifToolExecuteError: If :py:attr:`check_execute` == True, and exit status was non-zero
+
+                .. _ExifTool Common Mistakes - Over-use of Wildcards in File Names: https://exiftool.org/mistakes.html#M2
+
+        """
+
+        final_files: List = self.__class__._parse_arg_files(files)
+        exec_params: List = []
+
+        exec_params.extend(["-all="])
+        exec_params.extend(final_files)
+        try:
+            ret = self.execute(*exec_params)
+        except exiftool.exceptions.ExifToolOutputEmptyError:
+            raise
+            # raise RuntimeError(f"{self.__class__.__name__}.get_tags: exiftool returned no data")
+        except exiftool.exceptions.ExifToolJSONInvalidError:
+            raise
+        except exiftool.exceptions.ExifToolExecuteError:
+            # if last_status is <> 0, raise an error that one or more files failed?
+            raise
+
+        return ret
 
 
-def find_tag_by_name(tag_name: str):
+# for now, just keep one instance of exiftool open for the duration of the
+# tool's run time
+@cache
+def get_exiftool():
+    et = ExifToolWithClear()
+    et.common_args = (et.common_args or []) + ["-overwrite_original"]
+
+    return et
+
+
+# @lru_cache(5)
+def read_tags(image_path: Path):
+    exiftool = get_exiftool()
+    # this library really seems to want to be run in bulk, todo: consider refactor
+    # to use in bulk.
+    tags: dict[str, Any] = exiftool.get_metadata(str(image_path))[0]
+    return tags
+
+
+def filter_tags(tags: dict[str, Any]):
     """
-    Return the IFD name and Tag ID for given tag_name.
-
-    May raise ValueError if the provided tag_name is invalid.
-    """
-
-    for ifd_name, ifd_tags in piexif.TAGS.items():
-        for tag_id, tag_data in ifd_tags.items():
-            if tag_data["name"] == tag_name:
-                if ifd_name == "Image":
-                    ifd_name = "0th"
-                return ifd_name, tag_id
-
-    raise ValueError(f"No tag with name `{tag_name}` exists")
-
-
-def get_tag_value(image_path: Path, tag_name: str) -> str | None:
-    """
-    Takes an image path and a tag name. Searches for the tag name across
-    all EXIF ifds and returns the first result's value if any.
-    Casts value to string.
-
-    May raise ValueError if the provided tag_name is invalid.
-    """
-
-    ifd_name, tag_id = find_tag_by_name(tag_name)
-    exif_dict = read_exif(image_path)
-
-    ifd_tags = exif_dict.get(ifd_name)
-    if ifd_tags and tag_id in ifd_tags:
-        value = ifd_tags[tag_id]
-        if isinstance(value, bytes):
-            value = value.decode()
-        return value
-
-
-def filter_tags(image_path: Path, tag_whitelist: Container[str]):
-    """
-    Filter out all EXIF tags of the provided file whose names do not match
-    the provided whitelist.
-
-    Returns the filtered EXIF dict.
-    """
-
-    exif_dict = read_exif(image_path)
-
-    new_exif = {}
-
-    for ifd_name, ifd_value in exif_dict.items():
-        if ifd_value is None:
-            new_exif[ifd_name] = None
-            continue
-
-        new_exif[ifd_name] = {}
-
-        for tag_id, tag_value in ifd_value.items():
-            tag_name = piexif.TAGS[ifd_name][tag_id]["name"]
-            if tag_name in tag_whitelist:
-                new_exif[ifd_name][tag_id] = tag_value
-
-    return new_exif
-
-
-def get_tags_flat(
-    image_path,
-):
-    """
-    Returns a flat map of filtered image tags with their values.
+    Return the list of the provided image's tags after filtering their names
+    against the regex blacklist and removes permanent unchangeable tags.
     """
 
-    return {tag_name: get_tag_value(image_path, tag_name) for tag_name in TAG_WHITELIST}
+    blacklist_patterns = get_tag_blacklist()
+
+    return {
+        name: value
+        for name, value in tags.items()
+        if not any({pattern.match(name) for pattern in blacklist_patterns})
+    }
 
 
 def write_image(output_dir: Path, image_path: Path):
@@ -136,11 +170,13 @@ def write_image(output_dir: Path, image_path: Path):
 
     output_filename = f"{hash_image(image_path)}{image_path.suffix}"
     output_path = output_dir / output_filename
+    output_path.write_bytes(image_path.read_bytes())
 
-    new_tags = filter_tags(image_path, TAG_WHITELIST)
+    old_tags = read_tags(image_path)
+    new_tags = filter_tags(old_tags)
 
-    with NamedTemporaryFile() as tempfile:
-        piexif.remove(str(image_path), tempfile.name)
-        piexif.insert(piexif.dump(new_tags), tempfile.name, str(output_path))
+    et = get_exiftool()
+    et.clear(output_path)
+    et.set_tags(output_path, new_tags)
 
     return output_path

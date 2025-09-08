@@ -1,9 +1,12 @@
 import argparse
+import logging
 import pathlib
 from importlib.metadata import version
 
 from photosite_backend.image import get_images, write_image
 from photosite_backend.manifest import generate_manifest, write_manifest
+
+logging.basicConfig(level=logging.INFO)
 
 
 def return_hi():
@@ -56,11 +59,11 @@ def write_output(input_path: pathlib.Path, output_dir: pathlib.Path):
     for image_path in image_paths:
         output_path = write_image(output_dir, image_path)
         written_files.add(output_path)
-        print(f"Wrote image `{image_path.name}` to `{output_path}`")
+        logging.info("Wrote image `%s` to `%s`", image_path.name, output_path)
 
     manifest_path = write_manifest(output_dir, manifest)
     written_files.add(manifest_path)
-    print(f"Wrote manifest to `{manifest_path}`")
+    logging.info("Wrote manifest to `%s`", manifest_path)
 
     return written_files
 
