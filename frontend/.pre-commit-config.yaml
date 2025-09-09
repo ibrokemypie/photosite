@@ -1,0 +1,11 @@
+# frontend code specific hooks
+repos:
+  - repo: https://github.com/ThatOneBro/pre-commit-deno-typecheck
+    rev: v0.2.0
+    hooks:
+      - id: deno-typecheck
+  - repo: https://github.com/nozaq/pre-commit-deno
+    rev: 0.1.0
+    hooks:
+      - id: deno-lint
+      - id: deno-fmt-check

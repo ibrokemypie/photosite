@@ -7,8 +7,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hynek/setup-cached-uv@v2
-      - name: Run prek (pre-commit)
-        # Not entirely sure what the best way to manage the version of a project
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+          cache: true
+      - name: run prek (pre-commit)
+        # not entirely sure what the best way to manage the version of a project
         # wide python dependency of a monorepo, pinning it here for now to
         # this alpha with subproject support.
         run: uvx --with prek==0.2.0-alpha.2 prek --all-files
@@ -30,3 +34,16 @@ jobs:
         run: uv run --frozen pytest
         env:
           COLUMNS: 120
+  test-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+          cache: true
+      - name: Run tests
+        run: deno test --allow-env
