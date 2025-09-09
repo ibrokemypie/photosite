@@ -1,0 +1,27 @@
+{
+  "tasks": {
+    "build": "deno bundle --platform=browser src/main.tsx -o dist/bundle.js",
+    "build:watch": "deno bundle --watch --platform=browser src/main.tsx -o dist/bundle.js",
+    "serve": "deno run -ENR jsr:@std/http/file-server",
+    "dev": "deno run build:watch & deno run serve"
+  },
+  "imports": {
+    "@testing-library/react": "npm:@testing-library/react@^16.3.0",
+    "global-jsdom": "npm:global-jsdom@^26.0.0",
+    "jsdom": "npm:jsdom@^26.1.0",
+    "react": "npm:react@^19.1.1",
+    "react-dom": "npm:react-dom@^19.1.1"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "npm:react@^19.1.1",
+    "types": [
+      "npm:@types/react@^19.1.1",
+      "npm:@types/react-dom@^19.1.1"
+    ],
+    "lib": [
+      "dom",
+      "deno.ns"
+    ]
+  }
+}
