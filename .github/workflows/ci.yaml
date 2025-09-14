@@ -12,10 +12,7 @@ jobs:
           deno-version: v2.x
           cache: true
       - name: run prek (pre-commit)
-        # not entirely sure what the best way to manage the version of a project
-        # wide python dependency of a monorepo, pinning it here for now to
-        # this alpha with subproject support.
-        run: uvx --with prek==0.2.0-alpha.2 prek --all-files
+        run: uvx prek --all-files
   test-backend:
     runs-on: ubuntu-latest
     defaults:
