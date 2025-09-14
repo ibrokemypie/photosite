@@ -1,11 +1,13 @@
 {
   "tasks": {
-    "build": "deno bundle --platform=browser src/main.tsx -o dist/bundle.js",
-    "build:watch": "deno bundle --watch --platform=browser src/main.tsx -o dist/bundle.js",
-    "serve": "deno run -ENR jsr:@std/http/file-server",
-    "dev": "deno run build:watch & deno run serve"
+    "build": "deno --unstable-bundle --env-file -P=bundle src/bundle.ts",
+    "build:watch": "deno run build --watch",
+    "serve": "deno run -ENR jsr:@std/http/file-server dist",
+    "dev": "deno run build:watch & deno run serve",
+    "test": "deno test -P"
   },
   "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.14",
     "@testing-library/react": "npm:@testing-library/react@^16.3.0",
     "global-jsdom": "npm:global-jsdom@^26.0.0",
     "jsdom": "npm:jsdom@^26.1.0",
@@ -23,5 +25,15 @@
       "dom",
       "deno.ns"
     ]
-  }
+  },
+  "permissions": {
+    "bundle": {
+      "env": true,
+      "write": ["dist"],
+      "read": ["src"]
+    }
+  },
+  "test": { "permissions": { "env": true } },
+  "exclude": ["dist"],
+  "unstable": ["bundle"]
 }
