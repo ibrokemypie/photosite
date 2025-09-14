@@ -1,7 +1,11 @@
 const term = Deno.env.get("GREETING");
 
-function App() {
-  return <h1>Hello, {term}!</h1>;
-}
+const App = () => {
+  return (
+    <div>
+      <h1>Hello, {term}!</h1>
+    </div>
+  );
+};
 
 export default App;
