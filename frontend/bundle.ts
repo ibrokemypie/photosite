@@ -38,6 +38,10 @@ const args = Deno.args;
 if (args.includes("--watch")) {
   const watcher = Deno.watchFs("src");
   for await (const _ of watcher) {
-    await writeBundle();
+    try {
+      await writeBundle();
+    } catch (e) {
+      console.log(e);
+    }
   }
 }

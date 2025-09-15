@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 
-import App from "./app.tsx";
+import Gallery from "./gallery.tsx";
 
 const rootElement = document.getElementById("root");
 
@@ -12,6 +12,6 @@ if (rootElement === null) {
 const root = createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <Gallery />
   </React.StrictMode>,
 );
