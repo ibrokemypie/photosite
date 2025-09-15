@@ -4,6 +4,8 @@
 // output, so I am using this to allow Deno.env.get() calls in runtime code which
 // will be rewritten to their result at bundle time.
 
+const args = Deno.args;
+
 const writeBundle = async () => {
   // @ts-expect-error: for some reason bundle isn't a property of the Deno type
   // even in Deno 2.5, so I have to do this for now.
@@ -11,9 +13,17 @@ const writeBundle = async () => {
     entrypoints: ["src/index.html"],
     outputDir: "dist",
     platform: "browser",
-    minify: false,
+    minify: args.includes("--minify"),
     write: false,
   });
+
+  try {
+    await Deno.mkdir("dist");
+  } catch (e) {
+    if (!(e instanceof Deno.errors.AlreadyExists)) {
+      throw e;
+    }
+  }
 
   for (const file of result.outputFiles!) {
     const parsedBundle = file.text().replace(
@@ -32,8 +42,6 @@ const writeBundle = async () => {
 };
 
 writeBundle();
-
-const args = Deno.args;
 
 if (args.includes("--watch")) {
   const watcher = Deno.watchFs("src");
