@@ -5,11 +5,10 @@ const BACKEND_URL = Deno.env.get("BACKEND_URL") ?? "http://127.0.0.1/";
 
 type GalleryImageProps = {
   manifestEntry: ManifestEntry;
-  sortKey: string;
 };
 
 const GalleryImage = (
-  { manifestEntry, sortKey }: GalleryImageProps,
+  { manifestEntry }: GalleryImageProps,
 ) => {
   const imageCSS = `
 	.image {
@@ -36,9 +35,9 @@ const GalleryImage = (
           src={new URL(manifestEntry.filename, BACKEND_URL).toString()}
         />
 
-        <span style={{}}>
-          {sortKey}: {manifestEntry.tags[sortKey] as string ?? ""}
-        </span>
+        <span>{manifestEntry.created_date}</span>
+        <br />
+        <span>{manifestEntry.keyword_tags.join(", ")}</span>
       </div>
     </>
   );
@@ -85,18 +84,11 @@ const galleryCSS = `
 const Gallery = () => {
   const manifest = useManifest();
 
-  const sortKeyOptions = [
-    "EXIF:DateTimeOriginal",
-    "Composite:Aperture",
-  ];
-
-  const [sortKey, setSortKey] = useState(sortKeyOptions[0]);
-
   const [isAscending, setIsAscending] = useState(false);
 
   const manifestImages = Object.values(manifest?.images ?? {}).sort((a, b) => {
-    const aValue = a.tags[sortKey];
-    const bValue = b.tags[sortKey];
+    const aValue = a.created_date ?? 0;
+    const bValue = b.created_date ?? 0;
 
     if (aValue > bValue) {
       if (isAscending) {
@@ -119,7 +111,6 @@ const Gallery = () => {
     <GalleryImage
       key={entry.filename}
       manifestEntry={entry}
-      sortKey={sortKey}
     />
   ));
 
@@ -132,20 +123,6 @@ const Gallery = () => {
       <div className="container">
         <div className="innerContainer">
           <div className="optionBar">
-            <select
-              name="sortKey"
-              value={sortKey}
-              onChange={(event) => setSortKey(event.target.value)}
-            >
-              {sortKeyOptions.map((sortKeyOption) => {
-                return (
-                  <option value={sortKeyOption} key={sortKeyOption}>
-                    {sortKeyOption}
-                  </option>
-                );
-              })}
-            </select>
-
             <button
               className="order-button"
               onClick={() => setIsAscending(!isAscending)}
