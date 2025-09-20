@@ -3,7 +3,6 @@ from pathlib import Path
 from photosite_backend.image import (
     ALLOWED_EXTENSIONS,
     PERMANENT_TAGS,
-    filter_tags,
     get_exiftool,
     get_images,
     hash_image,
@@ -73,30 +72,6 @@ class TestHashImage:
             assert hash_image(path_one) != hash_image(path_two)
 
 
-def test_filter_tags():
-    original = {
-        "EXIF:Copyright": "Rylee Randall",
-        "EXIF:Artist": "Rylee Randall",
-        "EXIF:Make": "OLYMPUS CORPORATION",
-        "EXIF:ApertureValue": 4,
-        "IPTC:By-line": "Rylee Randall",
-        "IPTC:TimeCreated": "11:05:48",
-        "IPTC:Caption-Abstract": "OLYMPUS DIGITAL CAMERA",
-        "File:FileType": "JPEG",
-        "File:MIMEType": "image/jpeg",
-        "Composite:ImageSize": "2000 1500",
-        "Photoshop:CopyrightFlag": 1,
-    }
-    expected = {
-        "EXIF:Make": "OLYMPUS CORPORATION",
-        "EXIF:ApertureValue": 4,
-        "IPTC:Caption-Abstract": "OLYMPUS DIGITAL CAMERA",
-        "IPTC:TimeCreated": "11:05:48",
-    }
-
-    assert filter_tags(original) == expected
-
-
 def test_clear_exif_tags(tmp_path):
     with (
         create_test_datafile(tmp_path, "photo_1.jpg").open("rb") as file,
@@ -140,20 +115,4 @@ def test_write_image(tmp_path: Path):
         output_path.name
         == "f85e656b84e9bd44354f02bd224b7eb9140f8a09e144ad469b1222b968082b24.jpg"
     )
-
-    tag_data = read_tags(output_path)
-
-    tag_keys = set(tag_data.keys())
-
-    unwanted = {"EXIF:Artist", "EXIF:Copyright", "IPTC:By-line"}
-    wanted = {
-        "IPTC:TimeCreated": "11:05:48",
-        "IPTC:Caption-Abstract": "OLYMPUS DIGITAL CAMERA",
-        "File:FileType": "JPEG",
-        "File:MIMEType": "image/jpeg",
-        "Composite:ImageSize": "2000 1500",
-        "EXIF:Make": "OLYMPUS CORPORATION",
-        "EXIF:ApertureValue": 4,
-    }
-    assert not tag_keys.issuperset(unwanted)
-    assert tag_keys.issuperset(wanted)
+    assert image_path.read_bytes() == output_path.read_bytes()

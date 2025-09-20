@@ -1,5 +1,4 @@
 import hashlib
-import re
 from pathlib import Path
 from typing import Any, List
 
@@ -10,13 +9,6 @@ from PIL import Image
 from photosite_backend.utils import cache, lru_cache
 
 ALLOWED_EXTENSIONS = (".jpg", ".jpeg")
-
-TAG_BLACKLIST = {
-    "(?i)GPS:.*",
-    "(?i).*:by.*line",
-    "(?i).*:.*copyright.*",
-    "(?i).*:.*artist.*",
-}
 
 # these are the keys left behind by exiftool after removing ALL
 # 'tags'
@@ -44,11 +36,6 @@ PERMANENT_TAGS = {
     "SourceFile",
     "IPTC:ApplicationRecordVersion",
 }
-
-
-@cache
-def get_tag_blacklist():
-    return {re.compile(pattern) for pattern in TAG_BLACKLIST | PERMANENT_TAGS}
 
 
 def get_images(input_path: Path):
@@ -135,28 +122,13 @@ def get_exiftool():
     return et
 
 
-# @lru_cache(5)
+@lru_cache(maxsize=5)
 def read_tags(image_path: Path):
     exiftool = get_exiftool()
     # this library really seems to want to be run in bulk, todo: consider refactor
     # to use in bulk.
     tags: dict[str, Any] = exiftool.get_metadata(str(image_path))[0]
     return tags
-
-
-def filter_tags(tags: dict[str, Any]):
-    """
-    Return the list of the provided image's tags after filtering their names
-    against the regex blacklist and removes permanent unchangeable tags.
-    """
-
-    blacklist_patterns = get_tag_blacklist()
-
-    return {
-        name: value
-        for name, value in tags.items()
-        if not any({pattern.match(name) for pattern in blacklist_patterns})
-    }
 
 
 def write_image(output_dir: Path, image_path: Path):
@@ -171,12 +143,4 @@ def write_image(output_dir: Path, image_path: Path):
     output_filename = f"{hash_image(image_path)}{image_path.suffix}"
     output_path = output_dir / output_filename
     output_path.write_bytes(image_path.read_bytes())
-
-    old_tags = read_tags(image_path)
-    new_tags = filter_tags(old_tags)
-
-    et = get_exiftool()
-    et.clear(output_path)
-    et.set_tags(output_path, new_tags)
-
     return output_path
