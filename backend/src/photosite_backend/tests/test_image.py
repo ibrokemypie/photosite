@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from photosite_backend.backends import get_fs
 from photosite_backend.image import (
     ALLOWED_EXTENSIONS,
     PERMANENT_TAGS,
@@ -109,10 +110,8 @@ def test_write_image(tmp_path: Path):
     image_path = create_test_datafile(tmp_path, "photo_1.jpg")
 
     output_dir = tmp_path
+    dest_fs = get_fs(str(output_dir), "dir")
 
-    output_path = write_image(output_dir, image_path)
-    assert (
-        output_path.name
-        == "f85e656b84e9bd44354f02bd224b7eb9140f8a09e144ad469b1222b968082b24.jpg"
-    )
-    assert image_path.read_bytes() == output_path.read_bytes()
+    hash = hash_image(image_path)
+    write_image(dest_fs, image_path)
+    assert image_path.read_bytes() == dest_fs.read_bytes(f"{hash}.jpg")

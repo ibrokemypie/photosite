@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
 
+from photosite_backend.backends import get_fs
 from photosite_backend.manifest import (
+    Manifest,
     ManifestEntry,
     generate_manifest_entry,
     write_manifest,
@@ -24,12 +26,17 @@ def test_generate_manifest_entry(tmp_path: Path):
 
 
 def test_write_manifest(tmpdir):
-    manifest = {
-        "version": 1,
-        "images": {"asdf": {"foo": "bar"}, "hjkl": {"baz": "qux"}},
-    }
+    manifest = Manifest(
+        version=1,
+        images={
+            "asdf": {"filename": "bar", "created_date": "", "keyword_tags": []},
+            "hjkl": {"filename": "qux", "created_date": "", "keyword_tags": []},
+        },
+    )
 
-    manifest_path = write_manifest(tmpdir, manifest)
+    dest_fs = get_fs(str(tmpdir), "dir")
 
-    with manifest_path.open("r") as file:
+    write_manifest(dest_fs, manifest)
+
+    with dest_fs.open("manifest.json", "rb") as file:
         assert json.load(file) == manifest

@@ -1,9 +1,11 @@
 import hashlib
+import logging
 from pathlib import Path
 from typing import Any, List
 
 import exiftool
 from exiftool import ExifToolHelper
+from fsspec.implementations.dirfs import DirFileSystem
 from PIL import Image
 
 from photosite_backend.utils import cache, lru_cache
@@ -131,16 +133,16 @@ def read_tags(image_path: Path):
     return tags
 
 
-def write_image(output_dir: Path, image_path: Path):
+def write_image(dest_fs: DirFileSystem, image_path: Path):
     """
-    Writes an input image to the correct location in the output path based on
-    its hash, with the exif data cleaned.
-
-    todo: tag rewriting
-    todo: configurable whielist
+    Writes an image into dest, named after its image hash.
     """
 
     output_filename = f"{hash_image(image_path)}{image_path.suffix}"
-    output_path = output_dir / output_filename
-    output_path.write_bytes(image_path.read_bytes())
-    return output_path
+    dest_fs.write_bytes(output_filename, image_path.read_bytes())
+    logging.info(
+        "Wrote image `%s` to `%s/%s`",
+        image_path.name,
+        dest_fs.path,
+        output_filename,
+    )
