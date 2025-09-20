@@ -1,72 +1,114 @@
-import argparse
+import json
 import logging
 import pathlib
-from importlib.metadata import version
+from typing import Annotated
 
-from photosite_backend.image import get_images, write_image
-from photosite_backend.manifest import generate_manifest, write_manifest
+import typer
+
+from photosite_backend.backends import dest_type_options, get_fs
+from photosite_backend.image import get_images, hash_image, write_image
+from photosite_backend.manifest import (
+    Manifest,
+    generate_manifest,
+    generate_manifest_entry,
+    write_manifest,
+)
 
 logging.basicConfig(level=logging.INFO)
 
 
-def return_hi():
-    return "hi!"
+app = typer.Typer()
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        prog="photosite-backend",
-        description="Generator of manifests for my photography website",
-    )
-    parser.add_argument(
-        "-i",
-        "--input-dir",
-        type=pathlib.Path,
-        help="Path to the directory containing the photos to import",
-        required=True,
-    )
-    parser.add_argument(
-        "-o",
-        "--output-dir",
-        type=pathlib.Path,
-        help="Path to the directory the manifest and sanitized images will be written to.",
-        default="./",
-    )
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
-        version="%(prog)s {version}".format(version=version("photosite_backend")),
-    )
-
-    args = parser.parse_args()
-
-    write_output(args.input_dir, args.output_dir)
-
-
-def write_output(input_path: pathlib.Path, output_dir: pathlib.Path):
+@app.command()
+def sync(
+    source_path: Annotated[
+        pathlib.Path, typer.Argument(help="Path to source directory")
+    ],
+    dest: Annotated[str, typer.Argument(help="Destination path or bucket name")],
+    dest_type: dest_type_options = "dir",
+):
     """
-    Reads the images contained within input_dir, writes them, with their EXIF
-    sanitized, into the output dir named after the hash of their image contents,
-    alongside a manifest file.
+    Reads in the images in source_path. Generates a manifest. Writes the images
+    and manifest to the selected dest, deleting any existing contents.
     """
 
-    image_paths = get_images(input_path)
+    dest_fs = get_fs(dest, dest_type)
+    image_paths = get_images(source_path)
 
-    written_files = set()
     manifest = generate_manifest(image_paths)
 
     for image_path in image_paths:
-        output_path = write_image(output_dir, image_path)
-        written_files.add(output_path)
-        logging.info("Wrote image `%s` to `%s`", image_path.name, output_path)
+        write_image(dest_fs, image_path)
 
-    manifest_path = write_manifest(output_dir, manifest)
-    written_files.add(manifest_path)
-    logging.info("Wrote manifest to `%s`", manifest_path)
+    write_manifest(dest_fs, manifest)
 
-    return written_files
+
+@app.command()
+def hash(image_path: pathlib.Path):
+    """
+    Get the hash of a provided image file. This only takes into account the image
+    bytes themselves, not metadata, so is stable when changing tags.
+    """
+
+    logging.info("Hash of `%s`: `%s`", image_path.name, hash_image(image_path))
+
+
+@app.command()
+def add(
+    dest: Annotated[str, typer.Argument(help="Destination path or bucket name")],
+    image_path: pathlib.Path,
+    dest_type: dest_type_options = "dir",
+):
+    """
+    Add a single image to dest.
+    """
+
+    dest_fs = get_fs(dest, dest_type)
+
+    write_image(dest_fs, image_path)
+
+    manifest: Manifest | None = None
+
+    try:
+        with dest_fs.open("manifest.json", "rb") as file:
+            manifest = json.load(file)
+
+        manifest["images"][hash_image(image_path)] = generate_manifest_entry(image_path)
+    except FileNotFoundError:
+        pass
+
+    if not manifest:
+        manifest = generate_manifest([image_path])
+
+    write_manifest(dest_fs, manifest)
+
+
+@app.command()
+def remove(
+    dest: Annotated[str, typer.Argument(help="Destination path or bucket name")],
+    hash: Annotated[str, typer.Argument(help="Image hash of image to remove")],
+    dest_type: dest_type_options = "dir",
+):
+    """
+    Remove an image by hash from the dest.
+    """
+
+    dest_fs = get_fs(dest, dest_type)
+
+    with dest_fs.open("manifest.json", "rb") as file:
+        manifest: Manifest = json.load(file)
+
+    entry = manifest["images"].get(hash)
+    if not entry:
+        logging.error("Provided hash `%s` not found in the manifest!", hash)
+        exit(1)
+
+    dest_fs.rm(entry["filename"])
+    del manifest["images"][hash]
+
+    write_manifest(dest_fs, manifest)
 
 
 if __name__ == "__main__":
-    main()
+    app()

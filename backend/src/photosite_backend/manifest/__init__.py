@@ -4,8 +4,11 @@ the parsed image metadata.
 """
 
 import json
+import logging
 import pathlib
 from typing import Iterable, TypedDict
+
+from fsspec.implementations.dirfs import DirFileSystem
 
 from photosite_backend.image import (
     hash_image,
@@ -15,20 +18,25 @@ from photosite_backend.image import (
 MANIFEST_VERSION = 2
 
 
-def generate_manifest(image_paths: Iterable[pathlib.Path]):
-    return {
-        "version": MANIFEST_VERSION,
-        "images": {
-            hash_image(image_path): generate_manifest_entry(image_path)
-            for image_path in image_paths
-        },
-    }
-
-
 class ManifestEntry(TypedDict):
     filename: str
     created_date: str | None
     keyword_tags: list[str]
+
+
+class Manifest(TypedDict):
+    version: int
+    images: dict[str, ManifestEntry]
+
+
+def generate_manifest(image_paths: Iterable[pathlib.Path]):
+    return Manifest(
+        version=MANIFEST_VERSION,
+        images={
+            hash_image(image_path): generate_manifest_entry(image_path)
+            for image_path in image_paths
+        },
+    )
 
 
 def generate_manifest_entry(image_path: pathlib.Path):
@@ -58,10 +66,10 @@ def generate_manifest_entry(image_path: pathlib.Path):
     )
 
 
-def write_manifest(output_dir: pathlib.Path, manifest_contents: dict):
-    manifest_path = output_dir / "manifest.json"
+def write_manifest(dest_fs: DirFileSystem, manifest_contents: Manifest):
+    manifest_filename = "manifest.json"
 
-    with manifest_path.open("w") as file:
+    with dest_fs.open(manifest_filename, "w") as file:
         json.dump(manifest_contents, file)
 
-    return manifest_path
+    logging.info("Wrote manifest to `%s/%s`", dest_fs.path, manifest_filename)
