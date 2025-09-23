@@ -141,9 +141,10 @@ def write_thumbnail(dest_fs: DirFileSystem, image_path: Path):
 
     thumbnail_res = 600, 600
     output_filename = f"{hash_image(image_path)}.thumb{image_path.suffix}"
+
     with Image.open(image_path) as im, dest_fs.open(output_filename, "wb") as out:
         im.thumbnail(thumbnail_res)
-        im.save(out)
+        im.save(out, im.format)
 
     logging.info(
         "Wrote thumbnail for `%s` to `%s/%s`",
