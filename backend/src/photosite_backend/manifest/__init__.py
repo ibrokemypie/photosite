@@ -11,6 +11,7 @@ from typing import Iterable, TypedDict
 from fsspec.implementations.dirfs import DirFileSystem
 
 from photosite_backend.image import (
+    hash_file,
     hash_image,
     read_tags,
 )
@@ -21,6 +22,7 @@ MANIFEST_VERSION = 3
 class ManifestEntry(TypedDict):
     filename: str
     thumbnail: str
+    file_hash: str
     created_date: str | None
     keyword_tags: list[str]
 
@@ -63,6 +65,7 @@ def generate_manifest_entry(image_path: pathlib.Path):
     return ManifestEntry(
         filename=f"{image_hash}{image_path.suffix}",
         thumbnail=f"{image_hash}.thumb{image_path.suffix}",
+        file_hash=hash_file(image_path),
         created_date=created_date,
         keyword_tags=sorted(keywords),
     )
