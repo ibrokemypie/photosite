@@ -1,21 +1,25 @@
 import { useState } from "react";
 import { ManifestEntry, useManifest } from "./manifest.ts";
+import { Link } from "react-router";
 
 const BACKEND_URL = Deno.env.get("BACKEND_URL") ?? document.location.toString();
 
 type GalleryImageProps = {
+  imageHash: string;
   manifestEntry: ManifestEntry;
 };
 
 const GalleryImage = (
-  { manifestEntry }: GalleryImageProps,
+  { imageHash, manifestEntry }: GalleryImageProps,
 ) => {
   return (
     <>
       <div className="image">
-        <img
-          src={new URL(manifestEntry.thumbnail, BACKEND_URL).toString()}
-        />
+        <Link to={{ "pathname": `view/${imageHash}` }}>
+          <img
+            src={new URL(manifestEntry.thumbnail, BACKEND_URL).toString()}
+          />
+        </Link>
 
         <span>{manifestEntry.created_date}</span>
         <br />
@@ -27,12 +31,13 @@ const GalleryImage = (
 
 const Gallery = () => {
   const manifest = useManifest();
+  const images = manifest?.images ?? {};
 
   const [isAscending, setIsAscending] = useState(false);
 
-  const manifestImages = Object.values(manifest?.images ?? {}).sort((a, b) => {
-    const aValue = a.created_date ?? 0;
-    const bValue = b.created_date ?? 0;
+  const sortedImageHashes = Object.keys(images).sort((a, b) => {
+    const aValue = images[a].created_date ?? 0;
+    const bValue = images[b].created_date ?? 0;
 
     if (aValue > bValue) {
       if (isAscending) {
@@ -51,10 +56,11 @@ const Gallery = () => {
     return 0;
   });
 
-  const galleryChildren = manifestImages.map((entry) => (
+  const galleryChildren = sortedImageHashes.map((imageHash) => (
     <GalleryImage
-      key={entry.filename}
-      manifestEntry={entry}
+      key={imageHash}
+      imageHash={imageHash}
+      manifestEntry={images[imageHash]}
     />
   ));
 

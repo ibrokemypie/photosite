@@ -7,13 +7,14 @@ const MANIFEST_URL = new URL("manifest.json", BACKEND_URL);
 export type ManifestEntry = {
   filename: string;
   thumbnail: string;
+  file_hash: string;
   created_date: string | undefined;
   keyword_tags: string[];
 };
 
 export type Manifest = {
   version: string;
-  images: ManifestEntry[];
+  images: Record<string, ManifestEntry>;
 };
 
 const getManifest = async () => {
