@@ -1,3 +1,4 @@
+import itertools
 import json
 import logging
 import pathlib
@@ -6,7 +7,7 @@ from typing import Annotated
 import typer
 
 from photosite_backend.backends import dest_type_options, get_fs
-from photosite_backend.image import get_images, hash_image, write_image
+from photosite_backend.image import get_images, hash_file, hash_image, write_image
 from photosite_backend.manifest import (
     Manifest,
     generate_manifest,
@@ -36,12 +37,53 @@ def sync(
     dest_fs = get_fs(dest, dest_type)
     image_paths = get_images(source_path)
 
-    manifest = generate_manifest(image_paths)
+    dest_fs = get_fs(dest, dest_type)
+
+    existing_manifest: Manifest | None = None
+    try:
+        with dest_fs.open("manifest.json", "rb") as file:
+            existing_manifest = json.load(file)
+    except FileNotFoundError:
+        pass
 
     for image_path in image_paths:
+        image_hash = hash_image(image_path)
+
+        # if the image already exists in the manifest, check it has a file hash
+        # and if that matches the new file, skip uploading.
+        if (
+            existing_manifest
+            and (entry := existing_manifest["images"].get(image_hash))
+            and (existing_hash := entry.get("file_hash"))
+        ):
+            new_hash = hash_file(image_path)
+            if new_hash == existing_hash:
+                logging.info(
+                    "Skipping upload of %s as it is already up to date in dest",
+                    image_path,
+                )
+                continue
+
         write_image(dest_fs, image_path)
 
-    write_manifest(dest_fs, manifest)
+    new_manifest = generate_manifest(image_paths)
+
+    existing_files = dest_fs.glob("*")
+    expected_files = list(
+        itertools.chain(
+            "manifest.json",
+            *[
+                (entry["filename"], entry["thumbnail"])
+                for entry in new_manifest["images"].values()
+            ],
+        )
+    )
+    unwanted_files = [file for file in existing_files if file not in expected_files]
+    for file_path in unwanted_files:
+        dest_fs.rm(file_path)
+
+    if new_manifest != existing_manifest:
+        write_manifest(dest_fs, new_manifest)
 
 
 @app.command()
@@ -64,23 +106,35 @@ def add(
     Add a single image to dest.
     """
 
+    image_hash = hash_image(image_path)
+    file_hash = hash_file(image_path)
+
     dest_fs = get_fs(dest, dest_type)
 
-    write_image(dest_fs, image_path)
-
     manifest: Manifest | None = None
-
     try:
         with dest_fs.open("manifest.json", "rb") as file:
             manifest = json.load(file)
-
-        manifest["images"][hash_image(image_path)] = generate_manifest_entry(image_path)
     except FileNotFoundError:
         pass
 
-    if not manifest:
+    if manifest:
+        # check whether the image already exists in the manifest and is up to
+        # date with any changes.
+        if (image_entry := manifest["images"].get(image_hash)) and image_entry.get(
+            "file_hash"
+        ) == file_hash:
+            logging.info(
+                "Skipping upload of %s as it is already up to date in dest",
+                image_path,
+            )
+            return
+
+        manifest["images"][image_hash] = generate_manifest_entry(image_path)
+    else:
         manifest = generate_manifest([image_path])
 
+    write_image(dest_fs, image_path)
     write_manifest(dest_fs, manifest)
 
 

@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 
+from photosite_backend.image import write_image
 from photosite_backend.main import add, hash, remove, sync
 from photosite_backend.manifest import Manifest
 from photosite_backend.tests import create_test_datafile
@@ -70,6 +71,72 @@ class TestSync:
         ]
         assert sorted(list(out_path.glob("*"))) == sorted(expected_files)
 
+    def test_existing_skipped(self, tmp_path):
+        in_path = tmp_path / "in"
+        out_path = tmp_path / "out"
+        in_path.mkdir()
+        out_path.mkdir()
+
+        create_test_datafile(in_path, "photo_1.jpg")
+        create_test_datafile(in_path, "photo_2.jpg")
+
+        add(out_path, in_path / "photo_1.jpg")
+
+        with mock.patch(
+            "photosite_backend.main.write_image", wraps=write_image
+        ) as write:
+            sync(in_path, out_path)
+            calls = write.call_args_list
+            assert len(calls) == 1
+            assert calls[0][0][1] == in_path / "photo_2.jpg"
+
+        with (out_path / "manifest.json").open() as file:
+            manifest_contents: Manifest = json.load(file)
+
+        manifest_images = list(manifest_contents["images"].keys())
+        assert sorted(manifest_images) == sorted(
+            [
+                "f85e656b84e9bd44354f02bd224b7eb9140f8a09e144ad469b1222b968082b24",
+                "c6e9ec51b31e15299990d475ac83e70ebde470f5a66e6ddfb0fce341caaff6ea",
+            ]
+        )
+        assert sorted(list(out_path.glob("*"))) == sorted(
+            [
+                out_path / "manifest.json",
+                *[out_path / f"{hash}.jpg" for hash in manifest_images],
+                *[out_path / f"{hash}.thumb.jpg" for hash in manifest_images],
+            ]
+        )
+
+    def test_old_deleted(self, tmp_path):
+        in_path = tmp_path / "in"
+        out_path = tmp_path / "out"
+        in_path.mkdir()
+        out_path.mkdir()
+
+        create_test_datafile(in_path, "photo_1.jpg")
+
+        (out_path / "asdf.jpg").write_text("")
+        (out_path / "asdf.thumb.jpg").write_text("")
+
+        sync(in_path, out_path)
+        with (out_path / "manifest.json").open() as file:
+            manifest_contents: Manifest = json.load(file)
+
+        manifest_images = list(manifest_contents["images"].keys())
+        assert sorted(manifest_images) == sorted(
+            [
+                "f85e656b84e9bd44354f02bd224b7eb9140f8a09e144ad469b1222b968082b24",
+            ]
+        )
+        assert sorted(list(out_path.glob("*"))) == sorted(
+            [
+                out_path / "manifest.json",
+                *[out_path / f"{hash}.jpg" for hash in manifest_images],
+                *[out_path / f"{hash}.thumb.jpg" for hash in manifest_images],
+            ]
+        )
+
 
 class TestAddCommand:
     def test_no_manifest(self, tmp_path):
@@ -122,6 +189,34 @@ class TestAddCommand:
             "c6e9ec51b31e15299990d475ac83e70ebde470f5a66e6ddfb0fce341caaff6ea",
         ]
 
+        assert sorted(list(out_path.glob("*"))) == sorted(
+            [
+                out_path / "manifest.json",
+                *[out_path / f"{hash}.jpg" for hash in manifest_images],
+                *[out_path / f"{hash}.thumb.jpg" for hash in manifest_images],
+            ]
+        )
+
+    def test_skip_duplicate(self, tmp_path):
+        in_path = tmp_path / "in"
+        out_path = tmp_path / "out"
+        in_path.mkdir()
+        out_path.mkdir()
+
+        create_test_datafile(in_path, "photo_1.jpg")
+        add(out_path, in_path / "photo_1.jpg")
+
+        with mock.patch("photosite_backend.image.write_image") as write:
+            add(out_path, in_path / "photo_1.jpg")
+            write.assert_not_called()
+
+        with (out_path / "manifest.json").open() as file:
+            manifest_contents: Manifest = json.load(file)
+
+        manifest_images = list(manifest_contents["images"].keys())
+        assert manifest_images == [
+            "f85e656b84e9bd44354f02bd224b7eb9140f8a09e144ad469b1222b968082b24",
+        ]
         assert sorted(list(out_path.glob("*"))) == sorted(
             [
                 out_path / "manifest.json",

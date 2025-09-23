@@ -50,13 +50,29 @@ def get_images(input_path: Path):
 
 @lru_cache(maxsize=5)
 def hash_image(image_path: Path):
-    # hashes just the image data, not the metadata, for identifying images
-    # even when their metadata has been modified.
+    """
+    Hashes just the image data, not the metadata, for identifying images
+    even when their metadata has been modified.
+    """
 
     with Image.open(image_path) as img:
         image_bytes = img.tobytes()
         sha256_hash = hashlib.sha256(image_bytes).hexdigest()
         return sha256_hash
+
+
+@lru_cache(maxsize=5)
+def hash_file(file_path: Path):
+    """
+    Hashes an entire file, including its metadata, to tell when metadata has been
+    changed.
+
+    Uses md5 for speed as collision isn't worth worrying about for this
+    usecase.
+    """
+    with open(file_path, "rb") as file:
+        md5_hash = hashlib.md5(file.read()).hexdigest()
+        return md5_hash
 
 
 class ExifToolWithClear(ExifToolHelper):
