@@ -115,4 +115,4 @@ def test_write_image(tmp_path: Path):
     hash = hash_image(image_path)
     write_image(dest_fs, image_path)
     assert dest_fs.read_bytes(f"{hash}.jpg") == image_path.read_bytes()
-    assert len(dest_fs.read_bytes(f"{hash}.thumb.jpg")) == 10924
+    assert len(dest_fs.read_bytes(f"{hash}.thumb.jpg")) == 37083

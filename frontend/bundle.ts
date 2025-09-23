@@ -14,6 +14,7 @@ const writeBundle = async () => {
     outputDir: "dist",
     platform: "browser",
     minify: args.includes("--minify"),
+    sourcemap: args.includes("--sourcemap") ? "linked" : undefined,
     write: false,
   });
 

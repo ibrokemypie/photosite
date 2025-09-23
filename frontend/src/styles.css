@@ -1,0 +1,51 @@
+body {
+  margin: 0;
+}
+
+.container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.innerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.grid {
+  display: grid;
+
+  grid-template-columns: 300px;
+  grid-gap: 15px;
+}
+
+@media only screen and (min-width: 600px) {
+  .grid {
+    grid-template-columns: 300px 300px;
+  }
+}
+
+@media only screen and (min-width: 900px) {
+  .grid {
+    grid-template-columns: 300px 300px 300px;
+  }
+}
+
+.optionBar {
+  padding: 10px 0;
+}
+.image {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.image > img {
+  width: 100%;
+}
+
+.image > span {
+  overflow-wrap: "break-word";
+}

@@ -10,29 +10,11 @@ type GalleryImageProps = {
 const GalleryImage = (
   { manifestEntry }: GalleryImageProps,
 ) => {
-  const imageCSS = `
-	.image {
-		display: inline-block;
-		overflow: hidden;
-	}
-
-	.image > img {
-    width: 100%;
-	}
-
-  .image > span {
-    overflow-wrap: "break-word";
-  }
-	`;
   return (
     <>
-      <style>
-        {imageCSS}
-      </style>
-
       <div className="image">
         <img
-          src={new URL(manifestEntry.filename, BACKEND_URL).toString()}
+          src={new URL(manifestEntry.thumbnail, BACKEND_URL).toString()}
         />
 
         <span>{manifestEntry.created_date}</span>
@@ -42,44 +24,6 @@ const GalleryImage = (
     </>
   );
 };
-
-const galleryCSS = `
-  .container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .innerContainer {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-	.grid {
-		display: grid;
-
-		grid-template-columns: 300px;
-		grid-gap: 15px;
-	}
-
-	@media only screen and (min-width: 600px) {
-		.grid {
-		  grid-template-columns: 300px 300px;
-		}
-	}
-
-	@media only screen and (min-width: 900px) {
-		.grid {
-		  grid-template-columns: 300px 300px 300px;
-		}
-	}
-
-  .optionBar {
-    padding: 10px 0;
-  }
-`;
 
 const Gallery = () => {
   const manifest = useManifest();
@@ -116,10 +60,6 @@ const Gallery = () => {
 
   return (
     <>
-      <style>
-        {galleryCSS}
-      </style>
-
       <div className="container">
         <div className="innerContainer">
           <div className="optionBar">

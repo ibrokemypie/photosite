@@ -1,4 +1,4 @@
-name: deploy
+name: cd
 on:
   push:
 jobs:
@@ -16,12 +16,12 @@ jobs:
           cache: true
       - name: Build frontend (prod)
         if: github.ref == 'refs/heads/main'
-        run: deno run build --minify
+        run: deno run bundle --minify --sourcemap
         env:
           BACKEND_URL: ${{ secrets.DEPLOY_BACKEND_URL }}
       - name: Build frontend (dev)
         if: github.ref != 'refs/heads/main'
-        run: deno run build
+        run: deno run bundle --sourcemap
       - uses: hynek/setup-cached-uv@v2
         if: github.ref != 'refs/heads/main'
       - uses: awalsh128/cache-apt-pkgs-action@latest
