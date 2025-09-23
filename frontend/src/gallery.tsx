@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ManifestEntry, useManifest } from "./manifest.ts";
 
-const BACKEND_URL = Deno.env.get("BACKEND_URL") ?? "http://127.0.0.1/";
+const BACKEND_URL = Deno.env.get("BACKEND_URL") ?? document.location.toString();
 
 type GalleryImageProps = {
   manifestEntry: ManifestEntry;
