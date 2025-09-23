@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const BACKEND_URL = Deno.env.get("BACKEND_URL") ?? "http://127.0.0.1/";
+const BACKEND_URL = Deno.env.get("BACKEND_URL") ?? document.location.toString();
 
 const MANIFEST_URL = new URL("manifest.json", BACKEND_URL);
 
