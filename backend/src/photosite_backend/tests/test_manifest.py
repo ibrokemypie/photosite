@@ -18,6 +18,7 @@ def test_generate_manifest_entry(tmp_path: Path):
 
     expected = ManifestEntry(
         filename="c4f25abf6a3fdfa308a2f4b0027666e54dc8562f8d60ec8ae69dec75525225e0.jpg",
+        thumbnail="c4f25abf6a3fdfa308a2f4b0027666e54dc8562f8d60ec8ae69dec75525225e0.thumb.jpg",
         created_date="2025:09:11 16:30:37",
         keyword_tags=["animal", "cat"],
     )
@@ -29,8 +30,18 @@ def test_write_manifest(tmpdir):
     manifest = Manifest(
         version=1,
         images={
-            "asdf": {"filename": "bar", "created_date": "", "keyword_tags": []},
-            "hjkl": {"filename": "qux", "created_date": "", "keyword_tags": []},
+            "asdf": {
+                "filename": "bar",
+                "thumbnail": "qux.thumb",
+                "created_date": "",
+                "keyword_tags": [],
+            },
+            "hjkl": {
+                "filename": "qux",
+                "thumbnail": "qux.thumb",
+                "created_date": "",
+                "keyword_tags": [],
+            },
         },
     )
 

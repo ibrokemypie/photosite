@@ -104,7 +104,16 @@ def remove(
         logging.error("Provided hash `%s` not found in the manifest!", hash)
         exit(1)
 
-    dest_fs.rm(entry["filename"])
+    try:
+        dest_fs.rm(entry["filename"])
+    except FileNotFoundError:
+        pass
+
+    try:
+        dest_fs.rm(entry["thumbnail"])
+    except (FileNotFoundError, KeyError):
+        pass
+
     del manifest["images"][hash]
 
     write_manifest(dest_fs, manifest)
