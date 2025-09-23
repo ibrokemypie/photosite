@@ -133,9 +133,29 @@ def read_tags(image_path: Path):
     return tags
 
 
+def write_thumbnail(dest_fs: DirFileSystem, image_path: Path):
+    """
+    Creates a thumbnail for a given image path and writes it into
+    {imghash}.thumb.{ext} in dest.
+    """
+
+    thumbnail_res = 600, 600
+    output_filename = f"{hash_image(image_path)}.thumb{image_path.suffix}"
+    with Image.open(image_path) as im, dest_fs.open(output_filename, "wb") as out:
+        im.thumbnail(thumbnail_res)
+        im.save(out)
+
+    logging.info(
+        "Wrote thumbnail for `%s` to `%s/%s`",
+        image_path.name,
+        dest_fs.path,
+        output_filename,
+    )
+
+
 def write_image(dest_fs: DirFileSystem, image_path: Path):
     """
-    Writes an image into dest, named after its image hash.
+    Writes an image and its thumbnail into dest named after the image's hash.
     """
 
     output_filename = f"{hash_image(image_path)}{image_path.suffix}"
@@ -146,3 +166,5 @@ def write_image(dest_fs: DirFileSystem, image_path: Path):
         dest_fs.path,
         output_filename,
     )
+
+    write_thumbnail(dest_fs, image_path)

@@ -6,6 +6,7 @@ const MANIFEST_URL = new URL("manifest.json", BACKEND_URL);
 
 export type ManifestEntry = {
   filename: string;
+  thumbnail: string;
   created_date: string | undefined;
   keyword_tags: string[];
 };

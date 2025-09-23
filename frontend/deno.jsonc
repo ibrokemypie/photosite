@@ -1,12 +1,17 @@
 {
   "tasks": {
-    "build": "deno --unstable-bundle --env-file -P=bundle bundle.ts",
-    "build:watch": "deno run build --watch",
+    "bundle": "deno --unstable-bundle --env-file -P=bundle bundle.ts",
+    "bundle:watch": "deno run bundle --watch",
     "serve": "deno run -ENR jsr:@std/http/file-server dist",
-    "dev": "deno run build:watch & deno run serve",
+    "dev": "deno run bundle:watch --sourcemap & deno run serve",
     "test": "deno test -P"
   },
   "imports": {
+    // this is a workaround to prevent trying to import styles when running
+    // tests as deno runtime cant import css modules yet
+    // https://github.com/denoland/deno/issues/11961#issuecomment-1404365026
+    "./styles.ts": "./src/deno-styles.ts",
+
     "@std/assert": "jsr:@std/assert@^1.0.14",
     "@std/testing": "jsr:@std/testing@^1.0.15",
     "@testing-library/react": "npm:@testing-library/react@^16.3.0",

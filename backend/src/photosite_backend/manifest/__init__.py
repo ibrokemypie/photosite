@@ -15,11 +15,12 @@ from photosite_backend.image import (
     read_tags,
 )
 
-MANIFEST_VERSION = 2
+MANIFEST_VERSION = 3
 
 
 class ManifestEntry(TypedDict):
     filename: str
+    thumbnail: str
     created_date: str | None
     keyword_tags: list[str]
 
@@ -61,6 +62,7 @@ def generate_manifest_entry(image_path: pathlib.Path):
 
     return ManifestEntry(
         filename=f"{image_hash}{image_path.suffix}",
+        thumbnail=f"{image_hash}.thumb{image_path.suffix}",
         created_date=created_date,
         keyword_tags=sorted(keywords),
     )

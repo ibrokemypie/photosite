@@ -66,6 +66,7 @@ class TestSync:
         expected_files = [
             out_path / "manifest.json",
             *[out_path / (hash + ".jpg") for hash in manifest_images],
+            *[out_path / (hash + ".thumb.jpg") for hash in manifest_images],
         ]
         assert sorted(list(out_path.glob("*"))) == sorted(expected_files)
 
@@ -95,6 +96,8 @@ class TestAddCommand:
                 out_path / "manifest.json",
                 out_path
                 / "f85e656b84e9bd44354f02bd224b7eb9140f8a09e144ad469b1222b968082b24.jpg",
+                out_path
+                / "f85e656b84e9bd44354f02bd224b7eb9140f8a09e144ad469b1222b968082b24.thumb.jpg",
             ]
         )
 
@@ -122,10 +125,8 @@ class TestAddCommand:
         assert sorted(list(out_path.glob("*"))) == sorted(
             [
                 out_path / "manifest.json",
-                out_path
-                / "f85e656b84e9bd44354f02bd224b7eb9140f8a09e144ad469b1222b968082b24.jpg",
-                out_path
-                / "c6e9ec51b31e15299990d475ac83e70ebde470f5a66e6ddfb0fce341caaff6ea.jpg",
+                *[out_path / f"{hash}.jpg" for hash in manifest_images],
+                *[out_path / f"{hash}.thumb.jpg" for hash in manifest_images],
             ]
         )
 
